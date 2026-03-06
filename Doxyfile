@@ -1,0 +1,51 @@
+# Doxyfile - Doxygen配置文件
+
+# 项目信息
+PROJECT_NAME           = "EV Dynamics Simulation"
+PROJECT_NUMBER         = 1.0.0
+PROJECT_BRIEF          = "High-performance electric vehicle dynamics simulation platform"
+
+# 输入目录
+INPUT                  = src include docs
+RECURSIVE              = YES
+
+# 文件模式
+FILE_PATTERNS          = *.cpp *.h *.md
+
+# 排除目录
+EXCLUDE_PATTERNS       = */build/* */.git/* */tests/*
+
+# 输出目录
+OUTPUT_DIRECTORY       = docs
+
+# 输出格式
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+GENERATE_XML           = NO
+
+# HTML输出
+HTML_OUTPUT            = html
+HTML_FILE_EXTENSION    = .html
+
+# 源码浏览
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+
+# 图表生成
+HAVE_DOT               = YES
+UML_LOOK               = YES
+CLASS_DIAGRAMS         = YES
+COLLABORATION_GRAPH    = YES
+INCLUDE_GRAPH          = YES
+CALL_GRAPH             = YES
+
+# 预处理
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = NO
+
+# 其他选项
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+SHOW_INCLUDE_FILES     = YES
+SORT_MEMBER_DOCS       = YES

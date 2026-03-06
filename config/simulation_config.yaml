@@ -1,0 +1,228 @@
+# 仿真配置
+
+simulation:
+  frequency: 500  # Hz - 仿真频率
+  duration: 10.0  # 秒 - 仿真时长
+  dt: 0.002       # 秒 - 时间步长（自动计算：1/frequency）
+  
+  # 仿真模式
+  mode: "realtime"  # realtime, batch, replay
+  
+  # 输出配置
+  output:
+    enabled: true
+    format: "csv"   # csv, mat, hdf5
+    path: "results/"
+    prefix: "sim_"
+    
+  # 日志配置
+  logging:
+    level: "INFO"   # DEBUG, INFO, WARNING, ERROR
+    console: true
+    file: true
+    path: "logs/"
+
+# 车辆参数
+vehicle:
+  # 基本参数
+  mass: 1500.0       # kg - 整车质量
+  length: 4.5        # m - 车长
+  width: 1.8         # m - 车宽
+  height: 1.4        # m - 车高
+  
+  # 质心位置（相对于前轴）
+  cg_to_front: 1.2   # m
+  cg_to_rear: 1.5    # m
+  cg_height: 0.5     # m
+  
+  # 转动惯量
+  inertia:
+    ix: 500.0    # kg*m^2 - 绕x轴（侧倾）
+    iy: 2000.0   # kg*m^2 - 绕y轴（俯仰）
+    iz: 2500.0   # kg*m^2 - 绕z轴（横摆）
+    
+  # 轮胎参数
+  tire:
+    radius: 0.3      # m - 轮胎半径
+    width: 0.2       # m - 轮胎宽度
+    pressure: 2.5    # bar - 轮胎气压
+    
+  # 空气动力学
+  aero:
+    drag_coefficient: 0.3     # Cd - 阻力系数
+    lift_coefficient: 0.1     # Cl - 升力系数
+    frontal_area: 2.2         # m^2 - 迎风面积
+
+# 动力系统参数
+powertrain:
+  # 电机参数
+  motor:
+    max_torque: 300.0        # Nm - 最大扭矩
+    max_speed: 15000.0       # rpm - 最大转速
+    efficiency: 0.95         # 电机效率
+    response_time: 0.01      # s - 响应时间
+    
+  # 电池参数
+  battery:
+    capacity: 60.0           # kWh - 电池容量
+    max_power: 150.0         # kW - 最大功率
+    max_charge_rate: 50.0    # kW - 最大充电功率
+    min_soc: 0.1             # 最小SOC
+    max_soc: 0.95            # 最大SOC
+    efficiency: 0.92         # 电池效率
+    
+    # 热管理
+    thermal:
+      initial_temp: 25.0     # °C - 初始温度
+      max_temp: 45.0         # °C - 最高温度
+      cooling_power: 2.0     # kW - 冷却功率
+      
+  # 变速箱参数（单减速比）
+  transmission:
+    ratio: 9.0               # 减速比
+    efficiency: 0.98         # 传动效率
+
+# 底盘系统参数
+chassis:
+  # 悬架参数（前）
+  suspension_front:
+    stiffness: 30000.0       # N/m - 刚度
+    damping: 3000.0          # N*s/m - 阻尼
+    motion_ratio: 1.0        # 运动比
+    
+  # 悬架参数（后）
+  suspension_rear:
+    stiffness: 35000.0       # N/m - 刚度
+    damping: 3500.0          # N*s/m - 阻尼
+    motion_ratio: 1.0        # 运动比
+    
+  # 转向系统
+  steering:
+    ratio: 15.0              # 转向传动比
+    max_angle: 0.6           # rad - 最大转向角
+    response_time: 0.05      # s - 响应时间
+    
+  # 制动系统
+  braking:
+    max_torque_front: 5000.0   # Nm - 前轴最大制动力矩
+    max_torque_rear: 4000.0    # Nm - 后轴最大制动力矩
+    distribution: 0.6           # 前轴制动力分配比例
+    response_time: 0.1         # s - 响应时间
+
+# 轮胎模型参数（Pacejka魔术公式）
+tire_model:
+  # 纵向力参数
+  longitudinal:
+    B: 10.0    # 刚度因子
+    C: 1.9     # 形状因子
+    D: 1.0     # 峰值因子
+    E: 0.97    # 曲率因子
+    
+  # 侧向力参数
+  lateral:
+    B: 12.0    # 刚度因子
+    C: 2.3     # 形状因子
+    D: 1.0     # 峰值因子
+    E: 0.97    # 曲率因子
+    
+  # 回正力矩参数
+  aligning_moment:
+    B: 10.0    # 刚度因子
+    C: 2.3     # 形状因子
+    D: 0.1     # 峰值因子
+    E: 0.97    # 曲率因子
+
+# 调度器参数
+scheduler:
+  frequency: 500        # Hz - 调度频率
+  realtime_mode: true   # 实时模式
+  
+  # 任务配置
+  tasks:
+    - name: "dynamics_update"
+      frequency: 500    # Hz
+      priority: 1       # 最高优先级
+      
+    - name: "tire_update"
+      frequency: 500    # Hz
+      priority: 1
+      
+    - name: "powertrain_update"
+      frequency: 200    # Hz
+      priority: 2
+      
+    - name: "sensor_update"
+      frequency: 100    # Hz
+      priority: 3
+      
+    - name: "logging"
+      frequency: 50     # Hz
+      priority: 4
+      
+  # 监控配置
+  monitor:
+    enabled: true
+    max_frame_time: 0.003  # s - 最大帧时间
+    warn_threshold: 0.8    # 警告阈值（相对于dt）
+
+# 道路/环境参数
+environment:
+  # 道路摩擦系数
+  friction_coefficient: 1.0
+  
+  # 风速
+  wind_speed: 0.0      # m/s
+  wind_direction: 0.0  # rad
+  
+  # 道路坡度
+  grade: 0.0           # rad
+  
+  # 温度
+  temperature: 25.0    # °C
+  
+  # 气压
+  pressure: 101325.0   # Pa
+
+# 初始条件
+initial_conditions:
+  # 位置
+  x: 0.0       # m
+  y: 0.0       # m
+  z: 0.0       # m
+  
+  # 速度
+  vx: 0.0      # m/s - 纵向速度
+  vy: 0.0      # m/s - 侧向速度
+  vz: 0.0      # m/s - 垂向速度
+  
+  # 姿态角
+  roll: 0.0    # rad - 侧倾角
+  pitch: 0.0   # rad - 俯仰角
+  yaw: 0.0     # rad - 横摆角
+  
+  # 角速度
+  roll_rate: 0.0    # rad/s
+  pitch_rate: 0.0   # rad/s
+  yaw_rate: 0.0     # rad/s
+  
+  # 动力系统初始状态
+  battery_soc: 0.8    # 初始SOC
+  motor_speed: 0.0    # rpm
+
+# 驾驶员输入（用于开环仿真）
+driver_inputs:
+  # 时间序列
+  - time: 0.0
+    throttle: 0.0     # [0, 1]
+    brake: 0.0        # [0, 1]
+    steering: 0.0     # [-1, 1]
+    
+  - time: 1.0
+    throttle: 0.5
+    brake: 0.0
+    steering: 0.0
+    
+  - time: 5.0
+    throttle: 0.0
+    brake: 0.3
+    steering: 0.0

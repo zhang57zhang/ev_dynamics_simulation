@@ -1,0 +1,235 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake libeigen3-dev libgtest-dev
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pybind11 pytest
+    
+    - name: Configure CMake
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+    
+    - name: Build
+      run: |
+        cd build
+        make -j$(nproc)
+    
+    - name: Run tests
+      run: |
+        cd build
+        ctest --output-on-failure
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: linux-build
+        path: build/python_modules/
+
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Setup MSVC
+      uses: microsoft/setup-msbuild@v1
+    
+    - name: Install vcpkg
+      run: |
+        git clone https://github.com/Microsoft/vcpkg.git
+        cd vcpkg
+        .\bootstrap-vcpkg.bat
+        .\vcpkg integrate install
+    
+    - name: Install dependencies via vcpkg
+      run: |
+        .\vcpkg\vcpkg install eigen3:x64-windows
+        .\vcpkg\vcpkg install gtest:x64-windows
+        .\vcpkg\vcpkg install pybind11:x64-windows
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pybind11 pytest
+    
+    - name: Configure CMake
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+    
+    - name: Build
+      run: |
+        cd build
+        cmake --build . --config Release
+    
+    - name: Run tests
+      run: |
+        cd build
+        ctest -C Release --output-on-failure
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: windows-build
+        path: build/python_modules/
+
+  build-macos:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Install system dependencies
+      run: |
+        brew install cmake eigen googletest
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pybind11 pytest
+    
+    - name: Configure CMake
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+    
+    - name: Build
+      run: |
+        cd build
+        make -j$(sysctl -n hw.ncpu)
+    
+    - name: Run tests
+      run: |
+        cd build
+        ctest --output-on-failure
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: macos-build
+        path: build/python_modules/
+
+  code-quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Install clang-format
+      run: sudo apt-get install -y clang-format
+    
+    - name: Check code formatting
+      run: |
+        find src -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror
+    
+    - name: Install cppcheck
+      run: sudo apt-get install -y cppcheck
+    
+    - name: Static analysis
+      run: |
+        cppcheck --enable=all --error-exitcode=1 --suppress=missingIncludeSystem src/
+
+  documentation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Install Doxygen
+      run: sudo apt-get install -y doxygen graphviz
+    
+    - name: Generate documentation
+      run: |
+        doxygen Doxyfile 2>&1 | tee doxygen.log
+        if grep -q "error:" doxygen.log; then
+          echo "Doxygen encountered errors"
+          exit 1
+        fi
+    
+    - name: Upload documentation
+      uses: actions/upload-artifact@v3
+      with:
+        name: documentation
+        path: docs/html/
+
+  python-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake libeigen3-dev
+        pip install pybind11 pytest pytest-cov
+    
+    - name: Build project
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+        make -j$(nproc)
+    
+    - name: Run Python tests
+      run: |
+        cd build
+        export PYTHONPATH=$PYTHONPATH:$(pwd)/python_modules
+        pytest ../tests/python/ -v --cov=.
+    
+    - name: Upload coverage
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage.xml
+
+  deploy:
+    needs: [build-linux, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+    
+    - name: Create release
+      run: |
+        echo "Creating release for version ${{ github.sha }}"
+        # Add release creation logic here
+    
+    - name: Upload release assets
+      run: |
+        echo "Uploading release assets"
+        # Add asset upload logic here

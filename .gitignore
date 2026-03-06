@@ -1,0 +1,98 @@
+# 构建目录
+build/
+cmake-build-*/
+out/
+
+# 编译产物
+*.o
+*.obj
+*.exe
+*.out
+*.app
+*.so
+*.dylib
+*.dll
+*.lib
+*.a
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+*.sln.docstates
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
+
+# 测试
+Testing/
+test-results/
+coverage/
+*.gcda
+*.gcno
+*.gcov
+
+# 文档
+docs/html/
+docs/latex/
+doxygen.log
+
+# 日志
+logs/
+*.log
+
+# 结果
+results/
+*.csv
+*.mat
+*.h5
+
+# 配置（包含敏感信息）
+config/local_*.yaml
+.env
+
+# 操作系统
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*~
+
+# vcpkg
+vcpkg/
+.vcpkg-root
+
+# Conan
+conan.lock

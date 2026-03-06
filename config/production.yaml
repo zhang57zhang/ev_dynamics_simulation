@@ -1,0 +1,219 @@
+# EV Dynamics Simulation - Production Configuration
+# Version: 1.0
+# Date: 2026-03-06
+
+simulation:
+  # Simulation parameters
+  dt: 0.001  # Time step (1ms for real-time)
+  duration: 3600.0  # Default simulation duration (1 hour)
+  realtime: true  # Enable real-time simulation
+  threads: 4  # Number of worker threads
+  
+  # Output configuration
+  output:
+    format: "hdf5"  # Output format: hdf5, csv, binary
+    path: "/var/lib/ev_dynamics/data"
+    compression: true
+    flush_interval: 100  # Flush every N steps
+
+vehicle:
+  # Vehicle parameters
+  mass: 1800.0  # Vehicle mass (kg)
+  wheelbase: 2.7  # Wheelbase (m)
+  track_width: 1.6  # Track width (m)
+  cg_height: 0.5  # Center of gravity height (m)
+  frontal_area: 2.5  # Frontal area (m^2)
+  drag_coefficient: 0.28  # Drag coefficient
+  
+  # Inertia tensor
+  inertia:
+    xx: 500.0
+    yy: 2500.0
+    zz: 2800.0
+    xy: 0.0
+    xz: 0.0
+    yz: 0.0
+
+powertrain:
+  # Front motor parameters
+  front_motor:
+    type: "pmsm"
+    peak_power: 150000  # Peak power (W)
+    max_torque: 350  # Max torque (Nm)
+    max_speed: 15000  # Max speed (rpm)
+    efficiency: 0.95  # Motor efficiency
+    response_time: 0.005  # Response time (s)
+    
+  # Rear motor parameters
+  rear_motor:
+    type: "pmsm"
+    peak_power: 150000  # Peak power (W)
+    max_torque: 350  # Max torque (Nm)
+    max_speed: 15000  # Max speed (rpm)
+    efficiency: 0.95  # Motor efficiency
+    response_time: 0.005  # Response time (s)
+  
+  # Battery parameters
+  battery:
+    type: "lithium_ion"
+    capacity: 75.0  # Capacity (kWh)
+    max_voltage: 400  # Max voltage (V)
+    min_voltage: 300  # Min voltage (V)
+    max_current: 400  # Max discharge current (A)
+    internal_resistance: 0.05  # Internal resistance (Ohm)
+    initial_soc: 0.8  # Initial state of charge (0-1)
+    
+  # Transmission
+  transmission:
+    type: "single_speed"
+    gear_ratio: 9.0  # Gear ratio
+    efficiency: 0.97  # Transmission efficiency
+
+chassis:
+  # Suspension parameters
+  suspension:
+    front:
+      type: "macpherson"
+      stiffness: 25000  # Spring stiffness (N/m)
+      damping: 2500  # Damping coefficient (Ns/m)
+      anti_roll_bar: 2000  # Anti-roll bar stiffness (Nm/rad)
+    rear:
+      type: "multilink"
+      stiffness: 28000  # Spring stiffness (N/m)
+      damping: 2800  # Damping coefficient (Ns/m)
+      anti_roll_bar: 2200  # Anti-roll bar stiffness (Nm/rad)
+  
+  # Steering parameters
+  steering:
+    type: "eps"  # Electric Power Steering
+    ratio: 15.0  # Steering ratio
+    max_angle: 35.0  # Max steering angle (deg)
+    assist_gain: 2.0  # Power assist gain
+    
+  # Braking parameters
+  braking:
+    type: "hydraulic"
+    front_bias: 0.6  # Front brake bias
+    max_deceleration: 10.0  # Max deceleration (m/s^2)
+    abs_enabled: true  # ABS enabled
+
+tire:
+  # Tire parameters (Pacejka model)
+  model: "pacejka"
+  
+  # Tire dimensions
+  radius: 0.33  # Tire radius (m)
+  width: 0.225  # Tire width (m)
+  aspect_ratio: 45  # Aspect ratio (%)
+  
+  # Pacejka coefficients (longitudinal)
+  b0: 1.65
+  b1: 0.0
+  b2: 1688.0
+  b3: 0.0
+  b4: 229.0
+  b5: 0.0
+  b6: 0.0
+  b7: -0.3589
+  b8: 0.0
+  b9: 0.0
+  b10: 0.0
+  
+  # Pacejka coefficients (lateral)
+  a0: 1.65
+  a1: 0.0
+  a2: 1688.0
+  a3: 0.0
+  a4: 229.0
+  a5: 0.0
+  a6: 0.0
+  a7: -0.3589
+  a8: 0.0
+  a9: 0.0
+  a10: 0.0
+  a111: 0.0
+  a112: 0.0
+  a12: 0.0
+  a13: 0.0
+
+realtime:
+  # Real-time configuration
+  cpu_affinity: [0, 1, 2, 3]  # CPU cores to use
+  priority: 90  # Real-time priority (1-99)
+  scheduler: "fifo"  # Scheduler: fifo, rr
+  
+  # Performance targets
+  max_latency: 0.001  # Max acceptable latency (s)
+  min_frequency: 1000  # Min simulation frequency (Hz)
+  
+  # Memory locking
+  lock_memory: true  # Lock memory to prevent swapping
+  preallocate: true  # Pre-allocate memory
+
+hil:
+  # Hardware-in-the-Loop configuration
+  enabled: false  # Enable HIL mode
+  
+  # CAN interface
+  can:
+    interface: "can0"
+    bitrate: 500000
+    timeout: 0.001
+    
+  # IO mapping
+  inputs:
+    - name: "steering_angle"
+      channel: 0
+      type: "analog"
+      range: [-35, 35]
+    - name: "throttle"
+      channel: 1
+      type: "analog"
+      range: [0, 1]
+    - name: "brake"
+      channel: 2
+      type: "analog"
+      range: [0, 1]
+  
+  outputs:
+    - name: "vehicle_speed"
+      channel: 0
+      type: "analog"
+    - name: "motor_torque"
+      channel: 1
+      type: "analog"
+
+logging:
+  # Logging configuration
+  level: "info"  # Log level: debug, info, warning, error
+  file: "/var/log/ev_dynamics/simulation.log"
+  max_size: 100  # Max log file size (MB)
+  max_files: 10  # Max number of log files
+  format: "json"  # Log format: text, json
+  
+  # Performance logging
+  perf_log:
+    enabled: true
+    interval: 1000  # Log performance every N steps
+    
+  # Data logging
+  data_log:
+    enabled: true
+    variables:
+      - "vehicle_speed"
+      - "motor_torque"
+      - "battery_soc"
+      - "lateral_acceleration"
+      - "yaw_rate"
+
+monitoring:
+  # Monitoring configuration
+  enabled: true
+  prometheus:
+    port: 9090
+    path: "/metrics"
+    
+  # Health check endpoint
+  health:
+    port: 8080
+    path: "/health"

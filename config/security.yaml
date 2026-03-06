@@ -1,0 +1,231 @@
+# EV Dynamics Simulation - Security Configuration
+# Version: 1.0
+# Date: 2026-03-06
+
+authentication:
+  # Authentication configuration
+  enabled: false
+  
+  # Authentication methods
+  methods:
+    - type: "token"
+      enabled: true
+      header: "X-API-Token"
+      
+    - type: "basic"
+      enabled: false
+      
+    - type: "oauth2"
+      enabled: false
+      provider: "keycloak"
+      client_id: "ev_dynamics"
+      client_secret: "${OAUTH_CLIENT_SECRET}"
+      issuer_url: "https://auth.example.com/realms/evdynamics"
+
+authorization:
+  # Authorization configuration
+  enabled: false
+  
+  # Role-based access control
+  roles:
+    - name: "admin"
+      permissions:
+        - "simulation:start"
+        - "simulation:stop"
+        - "simulation:configure"
+        - "data:read"
+        - "data:write"
+        - "system:admin"
+        
+    - name: "operator"
+      permissions:
+        - "simulation:start"
+        - "simulation:stop"
+        - "data:read"
+        
+    - name: "viewer"
+      permissions:
+        - "data:read"
+  
+  # Default role for unauthenticated users
+  default_role: "viewer"
+
+network:
+  # Network security configuration
+  enabled: true
+  
+  # Firewall rules
+  firewall:
+    enabled: true
+    
+    # Allowed incoming ports
+    inbound:
+      - port: 8080
+        protocol: "tcp"
+        source: "0.0.0.0/0"
+        description: "Health check endpoint"
+        
+      - port: 9090
+        protocol: "tcp"
+        source: "10.0.0.0/8"
+        description: "Prometheus metrics"
+        
+      - port: 3000
+        protocol: "tcp"
+        source: "10.0.0.0/8"
+        description: "Grafana dashboard"
+    
+    # Outbound rules
+    outbound:
+      - port: 53
+        protocol: "udp"
+        destination: "0.0.0.0/0"
+        description: "DNS"
+        
+      - port: 443
+        protocol: "tcp"
+        destination: "0.0.0.0/0"
+        description: "HTTPS"
+  
+  # TLS configuration
+  tls:
+    enabled: false
+    cert_file: "/etc/ssl/certs/ev_dynamics.crt"
+    key_file: "/etc/ssl/private/ev_dynamics.key"
+    ca_file: "/etc/ssl/certs/ca.crt"
+    min_version: "TLS1.2"
+    cipher_suites:
+      - "ECDHE-ECDSA-AES256-GCM-SHA384"
+      - "ECDHE-RSA-AES256-GCM-SHA384"
+
+data:
+  # Data security configuration
+  enabled: true
+  
+  # Encryption at rest
+  encryption:
+    enabled: false
+    algorithm: "AES-256-GCM"
+    key_file: "/etc/ev_dynamics/encryption.key"
+    
+    # Encrypt these data types
+    encrypt:
+      - "simulation_data"
+      - "user_data"
+      - "configuration"
+  
+  # Data retention
+  retention:
+    simulation_data: 30  # Days
+    logs: 90  # Days
+    metrics: 7  # Days
+  
+  # Data anonymization
+  anonymization:
+    enabled: false
+    fields:
+      - "user_id"
+      - "session_id"
+      - "ip_address"
+
+audit:
+  # Audit logging configuration
+  enabled: true
+  
+  # Audit log file
+  log_file: "/var/log/ev_dynamics/audit.log"
+  
+  # Audit events
+  events:
+    - "authentication:success"
+    - "authentication:failure"
+    - "authorization:denied"
+    - "simulation:start"
+    - "simulation:stop"
+    - "configuration:change"
+    - "data:access"
+    - "data:export"
+    - "system:shutdown"
+  
+  # Log format
+  format: "json"
+  
+  # Retention
+  retention: 365  # Days
+
+secrets:
+  # Secrets management
+  enabled: true
+  
+  # Secrets storage
+  storage: "file"  # file, vault, aws_secrets_manager
+  
+  # File storage configuration
+  file:
+    path: "/etc/ev_dynamics/secrets"
+    permissions: "0600"
+  
+  # HashiCorp Vault configuration
+  vault:
+    enabled: false
+    address: "https://vault.example.com:8200"
+    token: "${VAULT_TOKEN}"
+    path: "secret/ev_dynamics"
+  
+  # Secrets to manage
+  managed_secrets:
+    - name: "api_token"
+      length: 32
+      regenerate: false
+      
+    - name: "encryption_key"
+      length: 32
+      regenerate: false
+      
+    - name: "oauth_client_secret"
+      source: "vault"
+      path: "oauth/client_secret"
+
+process:
+  # Process security configuration
+  enabled: true
+  
+  # Run as non-root user
+  user: "evdynamics"
+  group: "evdynamics"
+  
+  # Systemd security hardening
+  systemd_hardening:
+    NoNewPrivileges: true
+    PrivateTmp: true
+    ProtectSystem: "strict"
+    ProtectHome: true
+    ProtectKernelTunables: true
+    ProtectControlGroups: true
+    LockPersonality: true
+    MemoryDenyWriteExecute: true
+    RestrictRealtime: false  # Required for real-time simulation
+    RestrictNamespaces: true
+    RestrictAddressFamilies: "AF_INET AF_INET6"
+    
+  # Resource limits
+  limits:
+    cpu: 4  # Max CPU cores
+    memory: "8G"  # Max memory
+    file_descriptors: 65536
+    processes: 4096
+
+compliance:
+  # Compliance configuration
+  enabled: false
+  
+  # Standards
+  standards:
+    - name: "ISO27001"
+      enabled: false
+      
+    - name: "SOC2"
+      enabled: false
+      
+    - name: "GDPR"
+      enabled: false

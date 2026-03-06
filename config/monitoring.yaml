@@ -1,0 +1,210 @@
+# EV Dynamics Simulation - Monitoring Configuration
+# Version: 1.0
+# Date: 2026-03-06
+
+prometheus:
+  # Prometheus configuration
+  enabled: true
+  port: 9090
+  path: "/metrics"
+  interval: 15  # Scrape interval (seconds)
+  
+  # Custom metrics
+  metrics:
+    # Simulation metrics
+    - name: "ev_simulation_frequency"
+      type: "gauge"
+      description: "Current simulation frequency (Hz)"
+      
+    - name: "ev_simulation_latency"
+      type: "gauge"
+      description: "Simulation step latency (seconds)"
+      
+    - name: "ev_simulation_steps_total"
+      type: "counter"
+      description: "Total number of simulation steps"
+    
+    # Vehicle metrics
+    - name: "ev_vehicle_speed"
+      type: "gauge"
+      description: "Vehicle speed (m/s)"
+      
+    - name: "ev_vehicle_acceleration"
+      type: "gauge"
+      description: "Vehicle acceleration (m/s^2)"
+      
+    - name: "ev_vehicle_yaw_rate"
+      type: "gauge"
+      description: "Vehicle yaw rate (rad/s)"
+    
+    # Powertrain metrics
+    - name: "ev_motor_torque"
+      type: "gauge"
+      description: "Motor torque (Nm)"
+      labels: ["front", "rear"]
+      
+    - name: "ev_motor_power"
+      type: "gauge"
+      description: "Motor power (W)"
+      labels: ["front", "rear"]
+      
+    - name: "ev_battery_soc"
+      type: "gauge"
+      description: "Battery state of charge (0-1)"
+      
+    - name: "ev_battery_voltage"
+      type: "gauge"
+      description: "Battery voltage (V)"
+      
+    - name: "ev_battery_current"
+      type: "gauge"
+      description: "Battery current (A)"
+      
+    - name: "ev_battery_temperature"
+      type: "gauge"
+      description: "Battery temperature (C)"
+    
+    # Performance metrics
+    - name: "ev_cpu_usage"
+      type: "gauge"
+      description: "CPU usage (%)"
+      
+    - name: "ev_memory_usage"
+      type: "gauge"
+      description: "Memory usage (%)"
+      
+    - name: "ev_realtime_overruns"
+      type: "counter"
+      description: "Number of real-time overruns"
+
+grafana:
+  # Grafana dashboard configuration
+  enabled: true
+  port: 3000
+  
+  # Dashboard templates
+  dashboards:
+    - name: "EV Dynamics Overview"
+      panels:
+        - title: "Vehicle Speed"
+          type: "graph"
+          metrics: ["ev_vehicle_speed"]
+          
+        - title: "Motor Torque"
+          type: "graph"
+          metrics: ["ev_motor_torque"]
+          
+        - title: "Battery SOC"
+          type: "gauge"
+          metrics: ["ev_battery_soc"]
+          
+        - title: "Simulation Performance"
+          type: "graph"
+          metrics: ["ev_simulation_frequency", "ev_simulation_latency"]
+    
+    - name: "Powertrain Analysis"
+      panels:
+        - title: "Motor Power"
+          type: "graph"
+          metrics: ["ev_motor_power"]
+          
+        - title: "Battery Status"
+          type: "graph"
+          metrics: ["ev_battery_voltage", "ev_battery_current", "ev_battery_temperature"]
+    
+    - name: "Real-time Performance"
+      panels:
+        - title: "CPU & Memory"
+          type: "graph"
+          metrics: ["ev_cpu_usage", "ev_memory_usage"]
+          
+        - title: "Real-time Overruns"
+          type: "graph"
+          metrics: ["ev_realtime_overruns"]
+
+alerting:
+  # Alerting configuration
+  enabled: true
+  
+  # Alert rules
+  rules:
+    - name: "LowBatterySOC"
+      expression: "ev_battery_soc < 0.2"
+      severity: "warning"
+      message: "Battery SOC is below 20%"
+      
+    - name: "CriticalBatterySOC"
+      expression: "ev_battery_soc < 0.1"
+      severity: "critical"
+      message: "Battery SOC is critically low (<10%)"
+      
+    - name: "HighLatency"
+      expression: "ev_simulation_latency > 0.002"
+      severity: "warning"
+      message: "Simulation latency is above 2ms"
+      
+    - name: "RealtimeOverrun"
+      expression: "increase(ev_realtime_overruns[5m]) > 10"
+      severity: "warning"
+      message: "Multiple real-time overruns detected"
+      
+    - name: "HighMemoryUsage"
+      expression: "ev_memory_usage > 80"
+      severity: "warning"
+      message: "Memory usage is above 80%"
+      
+    - name: "CriticalMemoryUsage"
+      expression: "ev_memory_usage > 95"
+      severity: "critical"
+      message: "Memory usage is critical (>95%)"
+  
+  # Notification channels
+  notifications:
+    - type: "email"
+      enabled: false
+      recipients: ["admin@example.com"]
+      
+    - type: "slack"
+      enabled: false
+      webhook: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+      
+    - type: "webhook"
+      enabled: false
+      url: "http://localhost:5000/alerts"
+
+health_check:
+  # Health check configuration
+  enabled: true
+  port: 8080
+  path: "/health"
+  
+  # Health check criteria
+  checks:
+    - name: "simulation_running"
+      type: "process"
+      critical: true
+      
+    - name: "battery_healthy"
+      type: "metric"
+      expression: "ev_battery_soc > 0.05"
+      critical: true
+      
+    - name: "performance_ok"
+      type: "metric"
+      expression: "ev_simulation_latency < 0.005"
+      critical: false
+      
+    - name: "memory_ok"
+      type: "metric"
+      expression: "ev_memory_usage < 90"
+      critical: false
+
+tracing:
+  # Distributed tracing configuration
+  enabled: false
+  type: "jaeger"  # jaeger, zipkin
+  
+  jaeger:
+    agent_host: "localhost"
+    agent_port: 6831
+    sampling_rate: 0.1  # Sample 10% of traces

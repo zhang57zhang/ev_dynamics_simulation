@@ -1,0 +1,353 @@
+# 六自由度新能源车辆动力学仿真系统 - 项目配置
+
+## 项目基本信息
+project:
+  name: "ev_dynamics_simulation"
+  version: "0.1.0"
+  description: "6-DOF Electric Vehicle Dynamics Simulation for HIL Testing"
+  author: "Multi-Agent System"
+  created: "2026-03-05"
+
+## 技术栈决策（已确认）
+technology_stack:
+  programming_languages:
+    primary: "Python 3.10+"
+    performance_critical: "C++ 17"
+    binding: "pybind11"
+  
+  realtime_system:
+    os: "Linux"
+    kernel_patch: "PREEMPT_RT"
+    scheduler: "SCHED_FIFO"
+    priority: 90
+  
+  communication:
+    intra_module: "shared_memory"  # 模块内：共享内存
+    inter_module: "message_queue"  # 模块间：消息队列
+    protocol: "POSIX IPC"
+  
+  simulation_precision:
+    default_frequency: 500  # Hz
+    configurable_range: [500, 1000]  # Hz
+    integration_method: "RK4"  # Runge-Kutta 4阶
+
+## 开源参考（已确认）
+reference_projects:
+  architecture:
+    - name: "CarSim"
+      usage: "架构设计思路"
+      license: "Commercial"
+  
+  modeling:
+    - name: "OpenModelica"
+      usage: "模型化思路"
+      license: "OSMC"
+    
+    - name: "PyDy"
+      usage: "数学模型实现"
+      license: "BSD"
+  
+  implementation:
+    approach: "自研实现"
+    principle: "参考思路，不照搬代码"
+
+## 质量要求
+quality_requirements:
+  documentation:
+    architecture_doc: true
+    api_doc: true
+    user_guide: true
+    deployment_guide: true
+    code_comments: "comprehensive"  # 每行关键代码都有注释
+  
+  testing:
+    unit_test: true
+    integration_test: true
+    realtime_test: true
+    coverage_threshold: 90  # %
+    independent_testing: true  # 独立严格测试
+  
+  performance:
+    realtime_latency: 1  # ms（最大延迟）
+    simulation_accuracy: 95  # %（与理论值对比）
+    hil_readiness: true  # 可实际落地应用
+
+## 系统架构（初步）
+architecture:
+  layers:
+    - name: "Application Layer"
+      components: ["HIL Interface", "User Interface", "Data Logger"]
+    
+    - name: "Simulation Engine Layer"
+      components: ["Scheduler", "Coordinator", "State Manager"]
+    
+    - name: "Physics Model Layer"
+      components:
+        - "Vehicle Dynamics (6-DOF)"
+        - "Powertrain System (Motor + Battery)"
+        - "Chassis System (Suspension + Steering + Braking)"
+        - "Tire Model (Pacejka)"
+    
+    - name: "Hardware Abstraction Layer"
+      components: ["CAN Interface", "Ethernet Interface", "DA/AD Converter"]
+
+## 核心模块设计（解耦）
+modules:
+  powertrain:
+    description: "动力系统模块"
+    submodules:
+      - name: "Electric Motor"
+        type: "PMSM"
+        priority: "critical"
+        language: "C++"
+      
+      - name: "Battery Pack"
+        model: "SOC/SOH"
+        priority: "critical"
+        language: "C++"
+      
+      - name: "Transmission"
+        type: "Single-Speed Reducer"
+        priority: "normal"
+        language: "C++"
+    
+    interface: "Python"
+    communication: "shared_memory"
+  
+  chassis:
+    description: "底盘系统模块"
+    submodules:
+      - name: "Suspension"
+        type: "Active/Passive"
+        priority: "critical"
+        language: "C++"
+      
+      - name: "Steering"
+        type: "EPS/SBW"
+        priority: "critical"
+        language: "C++"
+      
+      - name: "Braking"
+        type: "EMB/Hydraulic"
+        priority: "critical"
+        language: "C++"
+    
+    interface: "Python"
+    communication: "shared_memory"
+  
+  vehicle_dynamics:
+    description: "车辆动力学模块"
+    dof: 6
+    coordinates:
+      - "Longitudinal (X)"
+      - "Lateral (Y)"
+      - "Vertical (Z)"
+      - "Roll (φ)"
+      - "Pitch (θ)"
+      - "Yaw (ψ)"
+    
+    priority: "critical"
+    language: "C++"
+    interface: "Python"
+    communication: "shared_memory"
+  
+  tire_model:
+    description: "轮胎模型模块"
+    type: "Pacejka Magic Formula"
+    features:
+      - "Longitudinal Force"
+      - "Lateral Force"
+      - "Aligning Moment"
+      - "Slip Ratio Calculation"
+    
+    priority: "critical"
+    language: "C++"
+    interface: "Python"
+    communication: "shared_memory"
+  
+  realtime_scheduler:
+    description: "实时调度模块"
+    features:
+      - "Periodic Task Scheduling"
+      - "Priority Management"
+      - "Deadline Monitoring"
+      - "Resource Management"
+    
+    priority: "critical"
+    language: "C++"
+    interface: "Python"
+    communication: "message_queue"
+  
+  hil_interface:
+    description: "HIL接口模块"
+    protocols:
+      - "CAN Bus"
+      - "Ethernet (UDP/TCP)"
+      - "Analog I/O"
+      - "Digital I/O"
+    
+    priority: "critical"
+    language: "C++"
+    interface: "Python"
+    communication: "message_queue"
+
+## 多Agent协作计划
+agent_collaboration:
+  phase_1:
+    name: "Architecture Design"
+    duration: 3  # days
+    agent: "ArchitectAgent"
+    deliverables:
+      - "System Architecture Document"
+      - "Module Interface Specification"
+      - "Technical Design Document"
+  
+  phase_2:
+    name: "Core Module Development"
+    duration: 7  # days
+    agents:
+      - name: "BackendAgent"
+        module: "Powertrain System"
+      
+      - name: "BackendAgent"
+        module: "Chassis System"
+      
+      - name: "BackendAgent"
+        module: "Vehicle Dynamics"
+      
+      - name: "AIEngineerAgent"
+        module: "Tire Model"
+      
+      - name: "DevOpsAgent"
+        module: "Realtime Scheduler"
+    
+    parallel: true  # 并行执行
+  
+  phase_3:
+    name: "Integration Testing"
+    duration: 3  # days
+    agent: "TestAgent"
+    deliverables:
+      - "Unit Tests"
+      - "Integration Tests"
+      - "Realtime Tests"
+      - "Test Report"
+  
+  phase_4:
+    name: "Documentation"
+    duration: 2  # days
+    agent: "DocAgent"
+    deliverables:
+      - "Architecture Document"
+      - "API Documentation"
+      - "User Guide"
+      - "Deployment Guide"
+  
+  phase_5:
+    name: "Quality Evaluation"
+    duration: 1  # day
+    agent: "EvaluatorAgent"
+    deliverables:
+      - "Code Quality Report"
+      - "Performance Evaluation"
+      - "Feasibility Assessment"
+      - "Quality Score"
+
+## 里程碑
+milestones:
+  - name: "Architecture Complete"
+    date: "2026-03-08"
+    criteria: "架构文档完成，技术选型确认"
+  
+  - name: "Core Modules Complete"
+    date: "2026-03-15"
+    criteria: "5个核心模块开发完成，单元测试通过"
+  
+  - name: "Integration Complete"
+    date: "2026-03-18"
+    criteria: "集成测试通过，实时性验证通过"
+  
+  - name: "Documentation Complete"
+    date: "2026-03-20"
+    criteria: "所有文档完成，代码注释完整"
+  
+  - name: "Project Delivery"
+    date: "2026-03-21"
+    criteria: "质量评估通过，可实际落地应用"
+
+## 成功标准
+success_criteria:
+  functional:
+    - "6-DOF动力学模型正确实现"
+    - "所有模块解耦，易于替换"
+    - "实时仿真延迟<1ms"
+    - "HIL接口正常工作"
+  
+  quality:
+    - "代码覆盖率>90%"
+    - "文档完整度100%"
+    - "代码注释完整"
+    - "所有测试独立严格"
+  
+  practical:
+    - "可在实际HIL系统部署"
+    - "性能满足实时要求"
+    - "精度满足工程需求"
+    - "可维护性和可扩展性良好"
+
+## 风险管理
+risks:
+  - name: "实时性不足"
+    probability: "medium"
+    impact: "high"
+    mitigation: "PREEMPT_RT内核优化，关键路径C++实现"
+  
+  - name: "模块集成复杂"
+    probability: "medium"
+    impact: "medium"
+    mitigation: "清晰的接口定义，完善的集成测试"
+  
+  - name: "精度不达标"
+    probability: "low"
+    impact: "high"
+    mitigation: "参考成熟模型，严格验证对比"
+  
+  - name: "工期延误"
+    probability: "medium"
+    impact: "medium"
+    mitigation: "多Agent并行开发，里程碑监控"
+
+## 开发规范
+coding_standards:
+  python:
+    style: "PEP 8"
+    type_hints: true
+    docstrings: "Google Style"
+  
+  cpp:
+    standard: "C++17"
+    style: "Google C++ Style Guide"
+    comments: "Doxygen格式"
+  
+  testing:
+    framework: "pytest (Python) + Google Test (C++)"
+    coverage_tool: "pytest-cov + gcov"
+  
+  documentation:
+    format: "Markdown"
+    diagrams: "PlantUML / Mermaid"
+    api_doc: "Sphinx (Python) + Doxygen (C++)"
+
+## 立即行动
+next_steps:
+  - action: "启动ArchitectAgent"
+    task: "系统架构设计"
+    estimated_time: "3 days"
+  
+  - action: "创建技术原型"
+    task: "验证实时性和通信机制"
+    estimated_time: "1 day"
+  
+  - action: "并行开发核心模块"
+    task: "5个Agent同时启动"
+    estimated_time: "7 days"
