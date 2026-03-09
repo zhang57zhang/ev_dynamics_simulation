@@ -1,0 +1,62 @@
+# powertrain/CMakeLists.txt - 修复版本
+# 动力系统模块
+
+message(STATUS "Configuring powertrain module...")
+
+# 收集所有源文件
+set(POWERTRAIN_SOURCES
+    battery.cpp
+    pmsm_motor.cpp
+    transmission.cpp
+    power_distribution.cpp
+)
+
+# 创建静态库
+add_library(powertrain STATIC ${POWERTRAIN_SOURCES})
+
+# 设置包含目录
+target_include_directories(powertrain PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../..
+    ${EIGEN3_INCLUDE_DIR}
+)
+
+# 链接依赖
+target_link_libraries(powertrain PUBLIC
+    Eigen3::Eigen
+)
+
+# 编译选项
+if(MSVC)
+    target_compile_options(powertrain PRIVATE /W4)
+else()
+    target_compile_options(powertrain PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+# Python 绑定（可选）
+if(BUILD_PYTHON_BINDINGS AND pybind11_FOUND)
+    message(STATUS "Configuring powertrain Python bindings...")
+
+    # 创建 Python 绑定模块
+    pybind11_add_module(powertrain_binding MODULE powertrain_binding.cpp)
+
+    # 设置输出目录
+    set_target_properties(powertrain_binding PROPERTIES
+        LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/python_modules
+    )
+
+    # 链接依赖
+    target_link_libraries(powertrain_binding PRIVATE
+        powertrain
+        Eigen3::Eigen
+    )
+
+    # 编译选项
+    if(MSVC)
+        target_compile_options(powertrain_binding PRIVATE /bigobj)
+    endif()
+
+    message(STATUS "Python module configured: powertrain_binding")
+endif()
+
+message(STATUS "Powertrain module configured")

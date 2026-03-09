@@ -1,0 +1,74 @@
+# Powertrain模块CMake配置 - 更新版
+
+cmake_minimum_required(VERSION 3.16)
+project(powertrain VERSION 1.0.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# 查找依赖库
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(GTest REQUIRED)
+
+# 源文件
+set(POWERTRAIN_SOURCES
+    pmsm_motor.cpp
+    battery.cpp
+    transmission.cpp
+    power_distribution.cpp
+)
+
+# 头文件
+set(POWERTRAIN_HEADERS
+    pmsm_motor.h
+    battery.h
+    transmission.h
+    power_distribution.h
+)
+
+# 创建静态库
+add_library(powertrain STATIC ${POWERTRAIN_SOURCES} ${POWERTRAIN_HEADERS})
+target_include_directories(powertrain PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(powertrain PUBLIC Eigen3::Eigen)
+
+# 编译选项
+target_compile_options(powertrain PRIVATE
+    -Wall -Wextra -Wpedantic
+    -O2
+)
+
+# 测试配置
+if(BUILD_TESTING)
+    enable_testing()
+    
+    # 测试文件
+    set(TEST_SOURCES
+        test_powertrain.cpp
+        test_powertrain_extended.cpp
+    )
+    
+    # 创建测试可执行文件
+    add_executable(test_powertrain ${TEST_SOURCES})
+    target_link_libraries(test_powertrain 
+        powertrain 
+        GTest::gtest 
+        GTest::gtest_main
+    )
+    
+    # 添加测试
+    include(GoogleTest)
+    gtest_discover_tests(test_powertrain)
+    
+    # 覆盖率配置
+    if(ENABLE_COVERAGE)
+        target_compile_options(test_powertrain PRIVATE --coverage -O0 -g)
+        target_link_options(test_powertrain PRIVATE --coverage)
+    endif()
+endif()
+
+# 安装配置
+install(TARGETS powertrain DESTINATION lib)
+install(FILES ${POWERTRAIN_HEADERS} DESTINATION include/powertrain)
+
+# 导出配置
+export(TARGETS powertrain FILE PowertrainConfig.cmake)

@@ -1,0 +1,203 @@
+# Prometheus告警规则配置
+
+groups:
+  # 仿真性能告警
+  - name: simulation_performance_alerts
+    rules:
+      - alert: HighSimulationLatency
+        expr: histogram_quantile(0.99, rate(vehicle_simulation_step_duration_seconds_bucket[5m])) > 0.001
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "仿真步长延迟过高"
+          description: "P99延迟 {{ $value }}s 超过目标 0.001s"
+          
+      - alert: VeryHighSimulationLatency
+        expr: histogram_quantile(0.99, rate(vehicle_simulation_step_duration_seconds_bucket[5m])) > 0.01
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "仿真步长延迟严重过高"
+          description: "P99延迟 {{ $value }}s 远超目标 0.001s"
+          
+      - alert: LowRealtimeFactor
+        expr: vehicle_simulation_realtime_factor < 1.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "实时因子过低"
+          description: "实时因子 {{ $value }} 低于1.0，无法满足实时性要求"
+          
+      - alert: SimulationStepsDropping
+        expr: rate(vehicle_simulation_steps_total[5m]) < 900
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "仿真步数下降"
+          description: "当前步数/秒 {{ $value }} 低于目标 1000"
+  
+  # 系统资源告警
+  - name: system_resource_alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total{job="vehicle-simulation"}[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU使用率过高"
+          description: "CPU使用率 {{ $value }}% 超过 80%"
+          
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "内存使用率过高"
+          description: "内存使用率 {{ $value }}% 超过 85%"
+          
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "磁盘空间不足"
+          description: "根分区剩余空间 {{ $value }}%"
+  
+  # API性能告警
+  - name: api_performance_alerts
+    rules:
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="vehicle-simulation"}[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API响应时间过长"
+          description: "P95响应时间 {{ $value }}s 超过 0.5s"
+          
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{job="vehicle-simulation",status=~"5.."}[5m]) / rate(http_requests_total{job="vehicle-simulation"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API错误率过高"
+          description: "5xx错误率 {{ $value | humanizePercentage }}"
+  
+  # 安全告警
+  - name: security_alerts
+    rules:
+      - alert: MultipleFailedLogins
+        expr: increase(auth_failures_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "登录失败次数过多"
+          description: "5分钟内登录失败 {{ $value }} 次"
+          
+      - alert: BruteForceAttempt
+        expr: increase(auth_failures_total{username!=""}[1m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "疑似暴力破解攻击"
+          description: "用户 {{ $labels.username }} 1分钟内登录失败 {{ $value }} 次"
+          
+      - alert: RateLimitExceeded
+        expr: rate(rate_limit_exceeded_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "速率限制频繁触发"
+          description: "速率限制触发 {{ $value }} 次/秒"
+          
+      - alert: UnusualAPIAccess
+        expr: rate(http_requests_total{job="vehicle-simulation"}[5m]) > 1000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API访问异常"
+          description: "API请求速率 {{ $value }} req/s 异常高"
+  
+  # 数值异常告警
+  - name: numerical_anomaly_alerts
+    rules:
+      - alert: VehicleSpeedOutOfRange
+        expr: vehicle_speed_meters_per_second > 100 OR vehicle_speed_meters_per_second < 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "车辆速度超出合理范围"
+          description: "车速 {{ $value }} m/s 超出 [0, 100] 范围"
+          
+      - alert: NumericalInstability
+        expr: vehicle_simulation_numerical_errors_total > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "数值计算不稳定"
+          description: "检测到数值计算错误"
+  
+  # 依赖服务告警
+  - name: dependency_alerts
+    rules:
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis服务不可用"
+          description: "Redis服务已宕机"
+          
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus服务不可用"
+          description: "Prometheus服务已宕机"
+          
+      - alert: GrafanaDown
+        expr: up{job="grafana"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Grafana服务不可用"
+          description: "Grafana服务已宕机"
+  
+  # 备份告警
+  - name: backup_alerts
+    rules:
+      - alert: BackupFailed
+        expr: vehicle_simulation_backup_success == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "备份失败"
+          description: "最近一次备份失败"
+          
+      - alert: BackupTooOld
+        expr: time() - vehicle_simulation_last_backup_timestamp > 86400
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "备份过期"
+          description: "最近一次备份已超过24小时"

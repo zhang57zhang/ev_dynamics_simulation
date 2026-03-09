@@ -1,42 +1,75 @@
 # 依赖配置
 # EV Dynamics Simulation Project
 
+include(FetchContent)
+
 # ============================================================================
 # Eigen3 - 线性代数库
 # ============================================================================
-find_package(Eigen3 3.3 REQUIRED)
-if(Eigen3_FOUND)
-    message(STATUS "Eigen3 found: ${Eigen3_VERSION}")
-    message(STATUS "Eigen3 include dir: ${EIGEN3_INCLUDE_DIR}")
+# 首先尝试在本地third_party目录查找
+set(EIGEN3_LOCAL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/third_party/eigen3")
+
+if(EXISTS "${EIGEN3_LOCAL_PATH}/Eigen")
+    message(STATUS "Using local Eigen3 from third_party directory")
+    set(EIGEN3_INCLUDE_DIR "${EIGEN3_LOCAL_PATH}")
+    add_library(Eigen3::Eigen INTERFACE IMPORTED)
+    target_include_directories(Eigen3::Eigen INTERFACE "${EIGEN3_INCLUDE_DIR}")
 else()
-    message(FATAL_ERROR "Eigen3 not found! Please install libeigen3-dev (Linux) or use vcpkg (Windows)")
+    # 尝试系统安装
+    find_package(Eigen3 3.3 QUIET)
+    
+    if(NOT Eigen3_FOUND)
+        message(STATUS "Eigen3 not found, fetching from GitHub...")
+        FetchContent_Declare(
+            Eigen3
+            GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+            GIT_TAG 3.4.0
+        )
+        FetchContent_MakeAvailable(Eigen3)
+        message(STATUS "Eigen3 fetched and configured")
+    else()
+        message(STATUS "Eigen3 found: ${Eigen3_VERSION}")
+        message(STATUS "Eigen3 include dir: ${EIGEN3_INCLUDE_DIR}")
+    endif()
 endif()
 
 # ============================================================================
-# pybind11 - Python绑定
+# pybind11 - Python绑定（可选）
 # ============================================================================
-find_package(pybind11 REQUIRED)
-if(pybind11_FOUND)
-    message(STATUS "pybind11 found: ${pybind11_VERSION}")
-    message(STATUS "Python include dirs: ${PYTHON_INCLUDE_DIRS}")
-    message(STATUS "Python libraries: ${PYTHON_LIBRARIES}")
-else()
-    message(FATAL_ERROR "pybind11 not found! Please install via pip: pip install pybind11")
+option(BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)
+
+if(BUILD_PYTHON_BINDINGS)
+    find_package(pybind11 QUIET)
+
+    if(NOT pybind11_FOUND)
+        message(STATUS "pybind11 not found, Python bindings disabled")
+        message(STATUS "Install pybind11 to enable Python bindings: pip install pybind11")
+        set(BUILD_PYTHON_BINDINGS OFF)
+    else()
+        message(STATUS "pybind11 found: ${pybind11_VERSION}")
+        message(STATUS "Python include dirs: ${PYTHON_INCLUDE_DIRS}")
+        message(STATUS "Python libraries: ${PYTHON_LIBRARIES}")
+    endif()
 endif()
 
 # ============================================================================
-# Google Test - 单元测试
+# Google Test - 单元测试（可选）
 # ============================================================================
-find_package(GTest QUIET)
-if(GTest_FOUND)
-    message(STATUS "GTest found: ${GTest_VERSION}")
-    message(STATUS "GTest include dirs: ${GTEST_INCLUDE_DIRS}")
-    message(STATUS "GTest libraries: ${GTEST_LIBRARIES}")
-    enable_testing()
-    set(BUILD_TESTING ON)
-else()
-    message(WARNING "GTest not found. Tests will be disabled. Install libgtest-dev (Linux) or use vcpkg (Windows)")
-    set(BUILD_TESTING OFF)
+option(BUILD_TESTING "Build tests" OFF)
+
+if(BUILD_TESTING)
+    find_package(GTest QUIET)
+
+    if(NOT GTest_FOUND)
+        message(STATUS "GTest not found, tests disabled")
+        message(STATUS "Install GTest to enable tests")
+        set(BUILD_TESTING OFF)
+    else()
+        message(STATUS "GTest found: ${GTest_VERSION}")
+        message(STATUS "GTest include dirs: ${GTEST_INCLUDE_DIRS}")
+        message(STATUS "GTest libraries: ${GTEST_LIBRARIES}")
+        enable_testing()
+    endif()
 endif()
 
 # ============================================================================
@@ -63,6 +96,16 @@ link_directories(
 # 辅助函数：创建Python模块
 # ============================================================================
 function(add_python_module MODULE_NAME SOURCES)
+    if(NOT BUILD_PYTHON_BINDINGS)
+        message(STATUS "Python module ${MODULE_NAME} skipped (Python bindings disabled)")
+        return()
+    endif()
+    
+    if(NOT pybind11_FOUND)
+        message(WARNING "Cannot create Python module ${MODULE_NAME}: pybind11 not found")
+        return()
+    endif()
+    
     # 创建模块
     pybind11_add_module(${MODULE_NAME} MODULE ${SOURCES})
     

@@ -33,6 +33,10 @@
 
 ## 🚀 快速开始
 
+> **Windows 10 用户专属指南:** 📘 查看 [WINDOWS10_USER_GUIDE.md](docs/WINDOWS10_USER_GUIDE.md) 获取详细的 Windows 10 安装、配置和使用指南。
+>
+> **快速参考:** 📋 查看 [WINDOWS10_QUICK_REFERENCE.md](WINDOWS10_QUICK_REFERENCE.md) 获取常用命令速查表。
+
 ### 前置要求
 - **操作系统**：Linux (Ubuntu 20.04+) / Windows 10+ / macOS 10.15+
 - **编译器**：GCC 9+ / MSVC 2019+ / Clang 10+

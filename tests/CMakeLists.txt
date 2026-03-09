@@ -9,8 +9,11 @@ find_package(GTest QUIET)
 if(GTest_FOUND)
     message(STATUS "GTest found, enabling C++ tests")
     
-    # 添加dynamics测试子目录
+    # 添加测试子目录
+    add_subdirectory(chassis)
     add_subdirectory(dynamics)
+    add_subdirectory(tire)
+    add_subdirectory(scheduler)
 else()
     message(STATUS "GTest not found, skipping C++ tests")
     message(STATUS "Install GTest to enable C++ unit tests")
